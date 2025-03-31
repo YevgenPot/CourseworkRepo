@@ -1,0 +1,871 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <ctype.h>
+////////////////////////////
+//defines
+
+#define WSPC 10
+#define PUNCT 20 
+#define LETTER 30 
+#define DIGIT 40
+
+#define T_ID 105
+#define T_NUM 116
+
+#define T_RW_PROGRAM 201
+#define T_RW_BEGIN 202
+#define T_RW_END 203
+#define T_RW_IF 204
+#define T_RW_THEN 205
+#define T_RW_ELSE 206
+#define T_RW_INPUT 207
+#define T_RW_OUTPUT 208
+#define T_RW_WHILE 209
+#define T_RW_LOOP 210
+#define T_RW_TYPE_INT 211
+#define T_RW_TYPE_FLOAT 212
+#define T_RW_TYPE_DOUBLE 213;
+
+#define T_RS_ASSIGNMENT 301 // :=
+#define T_RS_NOTEQUAL 302 // <>
+#define T_RS_DECLARATION 303 // :
+#define T_RS_LESSTHAN 304 // <
+#define T_RS_GREATTHAN 305 // >
+#define T_RS_PLUS 306 // +
+#define T_RS_MINUS 307 // -
+#define T_RS_MULTIPLY 308 // *
+#define T_RS_DIVIDE 309 // /
+#define T_RS_OPENPAREN 310 // (
+#define T_RS_CLOSEPAREN 311 // )
+#define T_RS_TERMINATE 312 // ;
+#define T_RS_VARLIST 313 // ,
+#define T_RS_INISHTYPE 314 // :
+#define T_RS_EQUAL // =
+
+
+
+/////////////////////////////
+//global vars
+
+FILE *file_ptr;
+const int maxBuffer = 20;//
+char lexemeBuffer[20];//
+int nextToken;
+char scannedChar;
+int charClass;
+int currentLexIndex;
+int lineCount = 0;  // use at error output
+char identTable[20][20];
+int identIndex = 0;
+
+//////////////////////////////////
+int main(){
+    file_ptr = fopen( "code.txt" , "r" );
+
+}
+
+/////////////////////////////
+//func declars
+
+
+
+////////////////////////////////
+/*
+    addCharToBuff
+        check if buffer is not full
+        put the scanned char into it
+        put a line end after it
+        
+operates on global variables:
+    lexemeBuffer
+    currentLexIndex
+    maxBuffer
+    scannedChar
+*/
+void addCharToBuff(){ // puts a scannedChar into buffer, and keeps track the overflow
+    if (currentLexIndex < maxBuffer-1){
+        lexemeBuffer[currentLexIndex] = scannedChar;
+        currentLexIndex++;
+        lexemeBuffer[currentLexIndex] = '\0'; // currentLexIndex always index to \0
+    }else{
+        //error code lexeme buffer overflow
+    }
+}//end of addCharToBuff
+////////////////////////////////
+
+//////////////////////////////////
+/*
+    getNextChar
+operates on global variables:
+    charClass
+scans a character from file
+uses c library
+categorize chars by defined values
+*/
+void getNextChar(){ // also categorize the charClass {scannedChar, charClass}
+
+    scannedChar = fgetc(file_ptr);
+    
+    charClass = -1; // not defined char
+    //categorize the char using c library
+    if( isalpha(scannedChar) || scannedChar == '_' ){
+        charClass = LETTER; // underscore defined as letter as its only used in IDENTS
+    }
+    else
+    if( isdigit(scannedChar) ){
+        charClass = DIGIT;
+    }
+    else
+    if( isspace(scannedChar) ){
+        charClass = WSPC; // includes all whitespace, keep track of newline later
+    }
+    else
+    if( ispunct(scannedChar) ){ // a set of punctuation as defined by c library
+        charClass = PUNCT; // hopefully we omitted the '_' by now
+    }
+    else{ // the charClass is still undefined
+        /error invalid character// error invalid 
+    }
+}//end of getNextChar
+////////////////////
+
+//////////////////
+/*
+    compStrToStr - takes two pointers to char array
+        compares a string to another string, lengthwise and case sensitive
+            returns 1 if both strings are identical
+            returns 0 if both strings are different
+*/
+int compStrToStr( char * string1 , char * string2 ){
+    if( strstr(string1, string2) && !strcmp( string1, string2 )  ){  // if the substring is within the string and length delta is 0
+        return 1;// true; both strings same length and substring is found in main string
+    }else{
+        return 0;// false, either strings are not same length, or substring is not found in main
+    }   
+}
+
+//////////////////
+/*
+reads buffer to evaluate reserve word token
+*/
+setReservedWordToken(){
+    
+    // take lexeme and put it in lowercase buffer
+    char lowercaseBuffer[20];
+    int boolRW = 0; // boolean if current lex is potential RW
+    
+    int i = 0; // initial i, stop looping if non-alpha = guaranteed not a RW
+    while( isalpha( lexemeBuffer[i] ) && (i<currentLexIndex) ){
+        lowercaseBuffer[i] = lexemeBuffer[i]
+        if( i = currentLexIndex - 1 ){ // if the char before terminator
+            boolRW = 1; // potential RW
+        }
+    }
+    
+    if(boolRW = 1){ // potentially a RW
+        if( compStrToStr( lowercaseBuffer, "program" ) ){
+            nextToken = T_RW_PROGRAM;
+            return;
+        }
+        if( compStrToStr(lowercaseBuffer , "begin") ){
+            nextToken = T_RW_BEGIN;
+            return;
+        }
+        if( compStrToStr(lowercaseBuffer , "end") ){
+            nextToken = T_RW_END;
+            return;
+        }
+        if( compStrToStr(lowercaseBuffer , "if") ){
+            nextToken = T_RW_IF;
+            return;
+        }
+        if( compStrToStr(lowercaseBuffer , "then") ){
+            nextToken = T_RW_THEN;
+            return;
+        }
+        if( compStrToStr(lowercaseBuffer , "else") ){
+            nextToken = T_RW_ELSE;
+            return;
+        }
+        if( compStrToStr(lowercaseBuffer , "input") ){
+            nextToken = T_RW_INPUT;
+            return;
+        }
+        if( compStrToStr(lowercaseBuffer , "output") ){
+            nextToken = T_RW_OUTPUT;
+            return;
+        }
+        if( compStrToStr(lowercaseBuffer , "while") ){
+            nextToken = T_RW_WHILE;
+            return;
+        }
+        if( compStrToStr(lowercaseBuffer , "loop") ){
+            nextToken = T_RW_LOOP;
+            return;
+        }
+        if( compStrToStr(lowercaseBuffer , "int") ){
+            /check length of int max 10 digits
+            nextToken = T_RW_TYPE_INT;
+            return;
+        }
+        if( compStrToStr(lowercaseBuffer , "float") ){
+            /check length of float 
+            nextToken = T_RW_TYPE_FLOAT;
+            return;
+        }
+        if( compStrToStr(lowercaseBuffer , "double") ){
+            /check length of double max 10 digits not the data range
+            nextToken = T_RW_TYPE_DOUBLE;
+            return;
+        }
+        
+    }// end of potential RW tokenizer
+    
+    //that means the lex is an ident
+
+	//put new ident into table char*table[][]
+	//this should be a lex that is not a reserved word
+	/put lex into table
+}///// end of setReservedWordToken
+
+/////////////////////////////
+/*
+    tablerIdentHandler
+        takes a mode selector
+            evaluates if current lex is in table 
+                returns error if duplicate found
+            if the mode param is 1 
+                puts the evaluated lex into table
+    
+    lexemeBuffer
+    identTable
+    identIndex
+    
+    //called because lex is an ident
+    //check if it is already in table, error
+*/
+tablerIdentHandler(int mode){
+    
+    char tableBuffer[20];
+    //put into tableBuffer, the amount of chars in lex plus '/0', the lexemeBuffer
+    snprintf( tableBuffer , (currentLexIndex+1), "%s", lexemeBuffer );
+    
+    for(int i = 0; i<=identIndex; i++){ // for all entries
+        if( compStrToStr( tableBuffer, identTable[i] ) ){ // compare to table
+            /error // a match, error duplicate ident insert
+        }
+    }// end of evaluation
+    
+
+    if(mode = 1){ // if insert mode selected
+        strcpy( identTable[identIndex] , tableBuffer );
+    }
+    
+}///////// end of tableIdentHandler
+
+//////////////////
+/*
+reads buffer to evaluate symbol token
+*/
+setReservedSymbToken(){
+
+char readPunct = lexemeBuffer[0]; // convenience to first char
+
+if( currentLexIndex > 1 ){
+    if( readPunct == ':' ){ //assignment (:=), assignment check conflict
+        if( lexemeBuffer[1] == '=' ){
+            nextToken = T_RS_ASSIGNMENT;
+            return;
+        }
+    }else
+    if( readPunct == '<' ){ //not equals (<>), comparator check conflict
+        if( lexemeBuffer[1] == '>' ){
+            nextToken = T_RS_NOTEQUAL;
+            return
+        }
+    }
+
+}else
+if( currentLexIndex = 1 ){ // if the buffer is one char followed by string terminator
+    if( readPunct == ':' ){  //declaration ( : ), declaration conflict
+        nextToken = T_RS_DECLARATION;
+        return;
+    }else
+    if( readPunct == '<' ){ //less than (<), comparator check conflict
+        nextToken = T_RS_LESSTHAN;
+        return;
+    }else
+    if( readPunct == '>' ){  //greater than (>), comparator
+        nextToken = T_RS_GREATTHAN;
+        return;
+    }else
+    if( readPunct == '+' ){ //plus (+), expression
+        nextToken = T_RS_PLUS;
+        return;
+    }else
+    if( readPunct == '-' ){  //minus (-) , expression
+        nextToken = T_RS_MINUS;
+        return;
+    }else
+    if( readPunct == '*' ){  //multiply (*), factor
+        nextToken = T_RS_MULTIPLY;
+        return;
+    }else
+    if( readPunct == '/' ){  //divide (/), factor
+        nextToken = T_RS_DIVIDE;
+        return;
+    }else
+    if( readPunct == '(' ){ // open paren
+        nextToken = T_RS_OPENPAREN;
+        return;
+    }else
+    if( readPunct == ')' ){ //close paren
+        nextToken = T_RS_CLOSEPAREN;
+        return;
+    }else
+    if( readPunct == ';' ){ //terminate line(;) , terminator
+        nextToken = T_RS_TERMINATE
+        return;
+    }else
+    if( readPunct == ',' ){ //variable list(,) , id lister in id
+        nextToken = T_RS_VARLIST;
+        return;
+    }else
+    if( readPunct == ':' ){ //initiate type dec(:) type declarer
+        nextToken = T_RS_DECLARATION;
+        return;
+    }
+    if( readPunct == '=' ){
+        nextToken = T_RS_EQUAL;
+        return;
+    }
+}
+
+}//end setReservedSymbToken
+///////////////////////////////
+
+/////////////////////////////////
+/*
+    lexBuilder
+        scan an input file and get the next token and lexeme
+sub functions:
+    addCharToBuff
+    getNextChar
+    setReservedSymbToken
+operates on global variables:
+    currentLexIndex
+    charClass
+    lexemeBuffer
+    nextToken
+*/
+void lexBuilder(){ // outputs next set of { nextToken , "lexeme" -> lexemeBuffer }
+
+    currentLexIndex = 0; // reset lex buffer
+    // first scan done in main to initialize scannedChar
+    
+    
+    //switch based on charClass
+    switch(charClass){ // what to do with char types
+        
+        case LETTER: // a letter symbol (including underscore)
+            addCharToBuff();
+            getNextChar();//get the next char
+            //while scannedChar still have valid letter class
+            while( charClass == LETTER || charClass == DIGIT ){//numbers also become valid letters
+            addCharToBuff();//keep pooling into buffer
+            getNextChar();
+            }
+            //next char is not a valid letter here
+            setReservedWordToken(); //generate the token
+            
+        break;
+        
+        case DIGIT: // a digit symbol
+            addCharToBuff();
+            getNextChar();//get the next char
+            int dotBool = 0;
+            //while scannedChar still have valid digit class
+            while( charClass == DIGIT || scannedChar == '.' ){
+                if(scannedChar == '.'){
+                    dotBool++; // keep track of how many dots used
+                }
+                addCharToBuff();
+                getNextChar();
+            }
+            if( dotBool > 1 ){
+            // error a valid symbol dot(.) may only be used once else invalid digit
+            }
+            nextToken = T_NUM ;//generate the token
+        break;
+        
+        case PUNCT: // non (ident/num) symbol
+            addCharToBuff();
+            getNextChar();//get the next char
+            while( charClass == PUNCT ){
+                addCharToBuff();
+                getNextChar();
+            }//while scannedChar still valid symbol class(multi-char symbols exist)
+            
+            setReservedSymbToken(); //generate the token
+        break;
+        
+        case WSPC: // whitespace (not a lexeme but used to calculate lines)
+            addCharToBuff();
+            getNextChar();//get the next char
+            while( charClass == WSPC ){//while scannedChar still valid whitespace
+            //dont pool
+            getNextChar();//keep getting chars until non whitespace is found
+            if( !(isblank(scannedChar)) ){ // exclude spaces and tabs as defined by c library
+                lineCount++;//if a whitespace was newLine, increment line counter
+            }
+            }
+        break;
+        
+        default: // some symbol that is never expected, a class not defined
+            /error // some invalid symbol
+        break;
+        
+    }//end of switch
+    
+}//end of lexBuilder
+/////////////////////////////////
+
+////////////////////////////////////
+/*
+    generateError
+        uses defined token code to switch a error message
+        print message
+        then end program execution
+    
+    globals in:
+        lineCount
+*/
+generateError( int code ){
+    
+    char part1[20];  // first part of error line
+    snprintf( part1, 20 , "ERROR LINE %d" , lineCount );
+    
+
+    char part2[30];   // second part of error line 
+    switch(code){
+        default:
+            snprintf( part2, 30, "UNKNOWN ERROR" ); //14
+        break;
+        
+        T_RW_PROGRAM:
+            snprintf ( part2, 30, "EXPECTED WORD PROGRAM" ); //22
+        break;
+        
+        T_RW_BEGIN:
+            snprintf ( part2, 30, "EXPECTED WORD BEGIN" ); //20
+        break;
+        
+        T_RW_END:
+        break;
+        
+        T_RW_IF:
+        break;
+        
+        T_RW_THEN:
+        break;
+        
+        T_RW_ELSE:
+        break;
+        
+        T_RW_INPUT:
+        break;
+        
+        T_RW_OUTPUT:
+        break;
+        
+        T_RW_INT:
+        break;
+        
+        T_RW_WHILE:
+        break;
+        
+        T_RW_LOOP:
+        break;
+        
+        T_RS_ASSIGNMENT:
+        break;
+        
+        T_RS_NOTEQUAL:
+        break;
+        
+        T_RS_DECLARATION:
+        break;
+        
+        T_RS_LESSTHAN:
+        break;
+        
+        T_RS_GREATTHAN:
+        break;
+        
+        T_RS_PLUS:
+        break;
+        
+        T_RS_MINUS:
+        break;
+        
+        T_RS_MULTIPLY:
+        break;
+        
+        T_RS_DIVIDE:
+        break;
+        
+        T_RS_OPENPAREN:
+        break;
+        
+        T_RS_CLOSEPAREN:
+        break;
+        
+        T_RS_TERMINATE:
+        break;
+        
+        T_RS_VARLIST:
+        break;
+        
+        T_RS_INISHTYPE:
+        break;
+
+    }
+    
+    printf( "%s : %s\n" ,part1, part2 ); // concat error lines and print
+    /end program;
+}
+////////// end of generateError
+
+
+/////////////////////////////////
+//                                parser
+////////////////////////////////
+
+void program(){
+	//program DECL_SEC begin STMT_SEC end; 
+	// | program begin STMT_SEC end;
+
+	printf("PROGRAM\n");
+	lexBuilder(); // get next
+
+	if( nextToken != T_RW_PROGRAM ){ // use lex - check next lexeme is program
+        generateError(T_RW_PROGRAM);
+	}
+
+	lexBuilder(); // get next
+	while( 
+	    nextToken != T_RW_BEGIN   // while next lexeme is not begin
+	){
+	        decl_sec(); // unused lex on exit
+	}
+    
+    if( nextToken != T_RW_BEGIN ){  // use lex - check next lexeme is begin
+        generateError(T_RW_BEGIN);
+    }
+    
+	lexBuilder(); // get next
+	while(
+	    nextToken != T_RW_END //while next lexeme is not end
+	){
+	        stmt_sec();
+	}
+
+	if ( nextToken != T_RS_TERMINATE ){ //check next for semicolon terminator
+	    generateError( T_RS_TERMINATE );
+	}
+	// success
+}
+
+void decl_sec(){
+	//DECL | DECL DECL_SEC
+
+	printf("DECL_SEC\n");
+    	
+	//unused lex on entry
+	
+	decl();
+	lexBuilder() // get next
+	//exit
+}
+
+void decl(){
+	//ID_LIST : TYPE ;
+
+	printf("DECL\n");
+	id_list(); // unused lex on entry
+    
+	if(
+	    nextToken != T_RS_DECLARATION  // use lex- if next is not a :
+	){
+    	    generateError(T_RS_DECLARATION);  // then error...
+	}
+	
+	lexBuilder() // then get next 
+	/type // use lex- check type
+
+	lexBuilder() // then get next
+	if(
+	    nextToken != T_RS_TERMINATE  // use lex- if next is a ; 
+	){
+            generateError(T_RS_TERMINATE);
+	}
+	// then exit decl
+    
+}
+
+void id_list(){
+	//ID | ID , ID_LIST
+
+	printf("ID_LIST\n");
+
+	/idcheck // use lex- check that id is valid
+    
+	lexBuilder()
+	if(
+	    nextToken == T_RS_VARLIST // use lex- if next is comma
+	){
+	lexBuilder() // use up token
+	id_list(); // then go to id_LIST
+	}
+	
+	//else token is not comma, exit id_list
+}
+
+///////////////
+
+void stmt_sec(){
+	//STMT | STMT STMT_SEC
+
+	printf("STMT_SEC\n");
+
+	//unused lex on entry
+	stmt();
+}
+
+void stmt(){
+	//ASSIGN | IFSTMT | WHILESTMT | INPUT | OUTPUT
+
+	printf("STMT\n");
+	
+	//use lex- switch check lex can be : ID, if, while, input, output
+	switch( nextToken ){ // check token
+	    default:
+	        /generateError unknown statement // invalid token for statement
+	    break;
+	    
+	    T_ID:
+	        assign();
+	    break;
+	    
+	    T_RW_IF:
+	        ifstmt();
+	    break;
+	    
+	    T_RW_WHILE:
+	        whilestmt();
+	    break;
+	    
+	    T_RW_INPUT:
+	        input();
+	    break;
+	    
+	    T_RW_OUTPUT:
+	        output();
+	    break;
+	}
+}
+
+void assign(){
+	//ID := EXPR ;
+
+	printf("ASSIGN\n");
+
+	/id //check id valid
+	lexBuilder() // get next
+	if(
+	    nextToken != T_RS_ASSIGNMENT //use lex- if not check := symbol
+	){
+        	generateError(T_RS_ASSIGNMENT); // then error
+	}
+
+	lexBuilder()// get next
+	expr();
+}
+
+void ifstmt(){
+	//if COMP then STMT_SEC end if ; | 
+	//if COMP then STMT_SEC else STMT_SEC end if ;
+
+	printf("IF_STMT\n");
+
+	//lex if checked in stmt
+	lexBuilder() // get next
+	comp();
+
+	//use lex- check then
+	
+	lexBuilder()
+	stmt_sec();
+
+	if(
+	//use lex- check for else
+	){
+	lexBuilder()
+	stmt_sec();
+	}
+	
+	//use lex- check end
+	lexBuilder()
+	//use lex- check if
+	lexBuilder()
+	//use lex- check symbol ;
+
+	//exit ifstmt
+}
+
+void whilestmt(){
+	//while COMP loop STMT_SEC end loop ;
+
+	printf("WHILE_STMT\n");
+
+	//lex while checked
+	lexBuilder()
+	comp();
+
+	//use lex- check loop
+
+	lexBuilder()
+	stmt_sec();
+
+	//use lex- check end
+	lexBuilder()
+	//use lex- check loop
+	lexBuilder()
+	//use lex- check symbol ;
+}
+
+void input(){
+	//input ID_LIST;
+
+	printf("INPUT\n");
+
+	//lex input checked
+	lexBuilder()
+	id_list();
+
+	//use lex- check symbol ;
+
+	//exit input
+}
+
+void output(){
+	//output ID_LIST | output NUM;
+
+	printf("WHILE_STMT\n");
+
+	//lex output check
+	lexBuilder()
+	
+	//use lex check if num
+	if(
+	//use lex- check if num
+	){
+	lexBuilder()
+	//use lex- check symbol ;
+	}else{
+	id_list();
+	}
+
+	//exit output
+}
+
+void expr(){
+	//FACTOR | FACTOR + EXPR | FACTOR - EXPR
+
+	printf("EXPR\n");
+
+	factor();
+
+	if(
+	//use lex- check if symbol + -
+	){
+	lexBuilder()
+	expr();
+	}
+
+	//exit expr
+}
+
+void factor(){
+	//OPERAND | OPERAND * FACTOR | OPERAND / FACTOR
+
+	printf("FACTOR\n");
+
+	operand();
+	
+	if(
+	    nextToken == //
+	){
+	    factor();
+	}
+}
+
+void operand(){
+	//NUM | ID | ( EXPR )
+
+	printf("OPERAND\n");
+
+	//use lex- check if num or id or paren
+	switch( nextToken ){
+	    default:
+	        /generateError()
+	    break;
+	    
+	    T_RS_OPENPAREN:
+	        expr();
+	        if( nextToken !=  ){
+	                /generateError()
+	        }
+	    break;
+	    
+	    T_NUM:
+	        /
+	    break;
+	    
+	    T_ID:
+	        /
+	    break;
+	}
+}
+
+void comp(){
+	//( OPERAND = OPERAND ) | ( OPERAND <> OPERAND ) | ( OPERAND > OPERAND ) | ( OPERAND < OPERAND )
+
+	printf("COMP\n");
+    //entry with unused lex
+	if(
+	    nextToken != T_RS_OPENPAREN //use lex- check paren (
+    ){
+            generateError(T_RS_OPENPAREN);
+    }
+    
+	lexBuilder()  // get next
+	operand();
+
+	if(
+	    nextToken != T_RS_EQUAL //use lex- check for reserved symbol
+    ){
+            generateError(T_RS_EQUAL);
+    }
+    
+	lexBuilder() // get next
+	operand();
+
+	if(
+	    nextToken != T_RS_CLOSEPAREN //use lex- check for paren )
+    ){
+            generateError(T_RS_CLOSEPAREN);
+    }
+	//exit comp
+}
