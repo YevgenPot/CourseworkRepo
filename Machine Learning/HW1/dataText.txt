@@ -1,0 +1,12 @@
+#one data point is int {SPACE} int
+#separated by newline
+#at least 2 points
+-20 -69
+-10 -36
+-5 -20
+0.00 -8.00
+4.00 6.00
+9.00 21.00
+15.00 35.00
+30.00 81.00
+
